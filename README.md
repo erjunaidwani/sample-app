@@ -190,10 +190,7 @@ http://<EC2_PUBLIC_IP>:9090
 - Valid SSH access is configured
 
 ---
-
 ## 📩 Contact
-
 For issues or help, open an issue or reach me via email:  
 📧 **erjuanidwani@gmail.com**
-
 ---

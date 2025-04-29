@@ -1,0 +1,94 @@
+---
+- name: Install Docker and Docker Compose
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install Docker dependencies (Debian/Ubuntu)
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg-agent
+          - software-properties-common
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Add Docker GPG key (Debian/Ubuntu)
+      apt_key:
+        url: https://download.docker.com/linux/debian/gpg
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Add Docker repository (Debian/Ubuntu)
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu noble stable
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install Docker packages (Debian/Ubuntu)
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Install Docker packages (RedHat/CentOS)
+      yum:
+        name:
+          - docker
+        state: present
+        enablerepo: extras # For CentOS 7
+      when: ansible_os_family == "RedHat"
+
+    - name: Start and enable Docker service (RedHat/CentOS)
+      service:
+        name: docker
+        state: started
+        enabled: yes
+      when: ansible_os_family == "RedHat"
+
+    - name: Install Docker Compose (RedHat/CentOS)
+      get_url:  # Use get_url for a more reliable way to install docker-compose
+        url: https://github.com/docker/compose/releases/download/v2.23.3/docker-compose-linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+      when: ansible_os_family == "RedHat"
+      
+    - name: Create docker group
+      group:
+        name: docker
+        state: present
+
+    - name: Add user to docker group
+      user:
+        name: "{{ ansible_user_id }}"
+        groups: docker
+        append: yes
+
+    - name: Set up docker daemon.json (Optional, for logging or other config)
+      file:
+        path: /etc/docker/daemon.json
+        state: touch
+        
+    - name: Configure docker daemon.json
+      copy:
+        content: |
+          {
+            "log-driver": "json-file",
+            "log-opts": {
+              "max-size": "100m"
+            }
+          }
+        dest: /etc/docker/daemon.json
+      notify: restart docker
+
+  handlers:
+    - name: restart docker
+      service:
+        name: docker
+        state: restarted
+

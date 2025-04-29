@@ -1,0 +1,8 @@
+---
+- import_playbook: dependencies/install_docker.yaml
+- import_playbook: dependencies/install_nginx_php.yaml
+- import_playbook: dependencies/configure_nginx.yml
+- import_playbook: dependencies/init_swarm.yaml
+- import_playbook: dependencies/deploy-docker-swarm.yaml
+- import_playbook: dependencies/node_exporter_install.yml
+- import_playbook: dependencies/prometheus_install.yml

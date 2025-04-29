@@ -1,0 +1,15 @@
+---
+- name: Initialize Docker Swarm
+  hosts: all
+  become: yes
+  tasks:
+    - name: Check if Docker Swarm is initialized
+      command: docker info
+      register: docker_info
+      changed_when: false
+      failed_when: false
+
+    - name: Initialize Docker Swarm if not initialized
+      command: docker swarm init
+      when: "'Swarm: active' not in docker_info.stdout"
+

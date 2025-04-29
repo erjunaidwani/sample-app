@@ -1,0 +1,72 @@
+# Trigger the workflow on push to the main branch
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Step 2: Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Step 3: Build and push the Docker image
+      - name: Build and push Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/my-sample-app:latest .
+          docker push ${{ secrets.DOCKER_USERNAME }}/my-sample-app:latest
+
+      # Step 4: SSH into EC2 and update or create Docker Swarm service
+      - name: SSH into EC2 and update or create Docker Swarm service
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Pull the latest image from Docker Hub
+            docker pull ${{ secrets.DOCKER_USERNAME }}/my-sample-app:latest
+
+            # Check if the service exists
+            SERVICE_EXISTS=$(docker service ls --filter name=my-sample-app --format "{{.Name}}")
+
+            if [ -z "$SERVICE_EXISTS" ]; then
+              # If the service doesn't exist, create it with health check
+              echo "Service my-sample-app not found. Creating a new service..."
+              docker service create --name my-sample-app \
+                --publish 8000:80 \
+                --health-cmd="curl --silent --fail http://localhost:80/ || exit 1" \
+                --health-interval=30s \
+                --health-timeout=10s \
+                --health-retries=3 \
+                --health-start-period=10s \
+                ${{ secrets.DOCKER_USERNAME }}/my-sample-app:latest
+            else
+              # If the service exists, update it
+              echo "Service my-sample-app found. Updating the service..."
+              docker service update --image ${{ secrets.DOCKER_USERNAME }}/my-sample-app:latest my-sample-app
+            fi
+
+            # Wait until the service is healthy
+            echo "Waiting for service to be healthy..."
+            while true; do
+              # Check the status of the tasks
+              TASKS_STATUS=$(docker service ps my-sample-app --filter "desired-state=running" --format "{{.CurrentState}}")
+              if [[ "$TASKS_STATUS" == *"Running"* ]]; then
+                echo "Service is healthy."
+                break
+              fi
+              echo "Service is still unhealthy or not fully deployed, waiting..."
+              sleep 10
+            done
+

@@ -1,0 +1,46 @@
+---
+- name: Deploy Docker Swarm Application
+  hosts: all
+  become: yes
+
+  vars:
+    docker_image: "{{ lookup('env', 'DOCKER_USERNAME') }}/my-sample-app:latest"
+    service_name: my-sample-app
+
+  tasks:
+    - name: Log in to Docker Hub
+      docker_login:
+        username: "{{ lookup('env', 'DOCKER_USERNAME') }}"
+        password: "{{ lookup('env', 'DOCKER_PASSWORD') }}"
+      no_log: true  # Don't log the password to avoid leakage
+
+    - name: Pull the latest Docker image
+      docker_image:
+        name: "{{ docker_image }}"
+        source: pull
+        tag: latest
+
+    - name: Check if the Docker service exists
+      command: "docker service ls --filter name={{ service_name }} -q"
+      register: service_exists
+      changed_when: false
+      failed_when: false
+
+    - name: Remove the existing Docker service if it exists
+      command: "docker service rm {{ service_name }}"
+      when: service_exists.stdout != ""
+      ignore_errors: yes
+
+    - name: Create Docker Swarm service
+      command: >
+        docker service create
+        --name {{ service_name }}
+        --publish 8000:80
+        --health-cmd="curl --silent --fail http://localhost:80/ || exit 1"
+        --health-interval=30s
+        --health-timeout=10s
+        --health-retries=3
+        --health-start-period=10s
+        "{{ docker_image }}"
+      when: service_exists.stdout == ""
+

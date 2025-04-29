@@ -1,0 +1,60 @@
+---
+- name: Install Nginx and PHP
+  hosts: all
+  become: yes
+
+  vars:
+    nginx_packages_debian:
+      - nginx
+    nginx_packages_redhat:
+      - nginx
+    php_packages_debian:
+      - php-fpm
+      - php-mysql
+      - php-gd
+      - php-curl
+      - php-xml
+      - php-mbstring
+      - zip
+      - unzip
+    php_packages_redhat:
+      - php-fpm
+      - php-mysqlnd
+      - php-gd
+      - php-curl
+      - php-xml
+      - php-mbstring
+      - zip
+      - unzip
+
+  tasks:
+    - name: Install Nginx packages (Debian/Ubuntu)
+      apt:
+        name: "{{ nginx_packages_debian }}"
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install Nginx packages (RedHat/CentOS)
+      yum:
+        name: "{{ nginx_packages_redhat }}"
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Install PHP packages (Debian/Ubuntu)
+      apt:
+        name: "{{ php_packages_debian }}"
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install PHP packages (RedHat/CentOS)
+      yum:
+        name: "{{ php_packages_redhat }}"
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Ensure Nginx is started and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+

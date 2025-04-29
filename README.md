@@ -99,8 +99,8 @@ export DOCKER_PASSWORD="your_dockerhub_token"
 ### Step 1: Clone Repository
 
 ```bash
-git clone https://github.com/erjunaidwani/sample-yii2-app.git
-cd sample-yii2-app/ansible
+git clone https://github.com/erjunaidwani/sample-app.git
+cd sample-app/ansible
 ```
 
 ### Step 2: First-Time Setup Using Ansible

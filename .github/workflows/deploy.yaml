@@ -35,15 +35,15 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             # Pull the latest image from Docker Hub
-            docker pull ${{ secrets.DOCKER_USERNAME }}/my-sample-app:latest
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/my-sample-app:latest
 
             # Check if the service exists
-            SERVICE_EXISTS=$(docker service ls --filter name=my-sample-app --format "{{.Name}}")
+            SERVICE_EXISTS=$(sudo docker service ls --filter name=my-sample-app --format "{{.Name}}")
 
             if [ -z "$SERVICE_EXISTS" ]; then
               # If the service doesn't exist, create it with health check
               echo "Service my-sample-app not found. Creating a new service..."
-              docker service create --name my-sample-app \
+              sudo docker service create --name my-sample-app \
                 --publish 8000:80 \
                 --health-cmd="curl --silent --fail http://localhost:80/ || exit 1" \
                 --health-interval=30s \
@@ -54,14 +54,14 @@ jobs:
             else
               # If the service exists, update it
               echo "Service my-sample-app found. Updating the service..."
-              docker service update --image ${{ secrets.DOCKER_USERNAME }}/my-sample-app:latest my-sample-app
+              sudo docker service update --image ${{ secrets.DOCKER_USERNAME }}/my-sample-app:latest my-sample-app
             fi
 
             # Wait until the service is healthy
             echo "Waiting for service to be healthy..."
             while true; do
               # Check the status of the tasks
-              TASKS_STATUS=$(docker service ps my-sample-app --filter "desired-state=running" --format "{{.CurrentState}}")
+              TASKS_STATUS=$(sudo docker service ps my-sample-app --filter "desired-state=running" --format "{{.CurrentState}}")
               if [[ "$TASKS_STATUS" == *"Running"* ]]; then
                 echo "Service is healthy."
                 break
@@ -71,10 +71,10 @@ jobs:
             done
 
             # Check if service is healthy, if not, perform rollback
-            HEALTH_STATUS=$(docker service ps my-sample-app --filter "desired-state=running" --format "{{.CurrentState}}")
+            HEALTH_STATUS=$(sudo docker service ps my-sample-app --filter "desired-state=running" --format "{{.CurrentState}}")
             if [[ "$HEALTH_STATUS" != *"Running"* ]]; then
               echo "Service failed. Rolling back..."
-              docker service update --rollback my-sample-app
+              sudo docker service update --rollback my-sample-app
             else
               echo "Service deployed successfully and is healthy."
             fi

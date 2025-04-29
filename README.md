@@ -102,6 +102,7 @@ export DOCKER_PASSWORD="your_dockerhub_token"
 git clone https://github.com/erjunaidwani/sample-app.git
 cd sample-app/ansible
 ```
+### Run chmod 400 ssh-key.pem
 
 ### Step 2: First-Time Setup Using Ansible
 

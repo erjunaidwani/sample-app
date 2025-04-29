@@ -70,3 +70,12 @@ jobs:
               sleep 10
             done
 
+            # Check if service is healthy, if not, perform rollback
+            HEALTH_STATUS=$(docker service ps my-sample-app --filter "desired-state=running" --format "{{.CurrentState}}")
+            if [[ "$HEALTH_STATUS" != *"Running"* ]]; then
+              echo "Service failed. Rolling back..."
+              docker service update --rollback my-sample-app
+            else
+              echo "Service deployed successfully and is healthy."
+            fi
+
